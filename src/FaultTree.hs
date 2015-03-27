@@ -5,10 +5,11 @@ import Data.SBV
 main :: IO ()
 main = do
     res <- allSat failureExpression
-    --res <- allSat thresholdExpression
     putStrLn $ show res
+    res2 <- allSat thresholdExpression
+    putStrLn $ show res2
 
---CAUTION: Impacts solving time negatively! 
+--CAUTION: Impacts solving time negatively!
 probability :: String -> Symbolic SDouble
 probability varName = do
     x <- sDouble varName
@@ -19,11 +20,11 @@ failureExpression :: Predicate
 failureExpression = do
         --safetyThreshold <- exists "SafetyThreshold"
         --constrain $ safetyThreshold .== 1e-9
-        battery <- exists "Battery"
+        battery <- sBool "Battery"
         let
             batteryBurns :: SDouble
             batteryBurns = 1e-9
-        sensor <- exists "Sensor"
+        sensor <- sBool "Sensor"
         let
             sensorFails :: SDouble
             sensorFails = 5e-9
@@ -48,34 +49,21 @@ thresholdExpression = do
         sensorFails :: SFloat
         sensorFails = 5e-9
     orFails <- exists "OrFails"
-    constrain $ orFails .== orGateSingle battery batteryBurns sensor sensorFails
+    constrain $ orFails .== orGate battery batteryBurns sensor sensorFails
 
     safetyThreshold <- exists "SafetyThreshold"
     constrain $ safetyThreshold .== 6e-9
 
     return $ orFails .< safetyThreshold
 
-andGate :: SBool -> SDouble -> SBool  -> SDouble -> SDouble
+andGate :: (Mergeable a, Floating a) => SBool -> a -> SBool  -> a -> a
 andGate    haveLeft leftProb  haveRight rightProb =
     ite (haveLeft)
         (ite haveRight (leftProb * rightProb) leftProb)
         (ite haveRight rightProb 0)
 
-orGate :: SBool -> SDouble -> SBool  -> SDouble -> SDouble
+orGate :: (Mergeable a, Floating a) => SBool -> a -> SBool  -> a -> a
 orGate    haveLeft leftProb  haveRight rightProb =
     ite (haveLeft)
         (ite haveRight (leftProb + rightProb - leftProb * rightProb) leftProb)
         (ite haveRight rightProb 0)
-
-andGateSingle :: SBool -> SFloat -> SBool  -> SFloat -> SFloat
-andGateSingle    haveLeft leftProb  haveRight rightProb =
-    ite (haveLeft)
-        (ite haveRight (leftProb * rightProb) leftProb)
-        (ite haveRight rightProb 0)
-
-orGateSingle :: SBool -> SFloat -> SBool  -> SFloat -> SFloat
-orGateSingle    haveLeft leftProb  haveRight rightProb =
-    ite (haveLeft)
-        (ite haveRight (leftProb + rightProb - leftProb * rightProb) leftProb)
-        (ite haveRight rightProb 0)
-
