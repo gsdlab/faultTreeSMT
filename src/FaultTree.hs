@@ -4,55 +4,54 @@ import Data.SBV
 
 main :: IO ()
 main = do
-    res <- allSat failureExpression
+    let fe1 = failureExpression
+    res <- allSat fe1
+    putStrLn "\nSolutions for Failure Expression: \n"
     putStrLn $ show res
+
+    -- show the resulting SMT-LIB2 formula:
+    {- compiledFe1 <- compileToSMTLib True True fe1
+    putStrLn compiledFe1-}
+
     res2 <- allSat thresholdExpression
+    putStrLn "\nSolutions for Treshold Expression: \n"
     putStrLn $ show res2
 
---CAUTION: Impacts solving time negatively!
 probability :: String -> Symbolic SDouble
 probability varName = do
     x <- sDouble varName
-    constrain $ x .>= 0.0 &&& x .<= 1 &&& ((1 / x) .> 0)
+    constrain $ isPositiveFP x &&& x .<= 1
     return x
 
 failureExpression :: Predicate
 failureExpression = do
-        --safetyThreshold <- exists "SafetyThreshold"
-        --constrain $ safetyThreshold .== 1e-9
-        battery <- sBool "Battery"
-        let
-            batteryBurns :: SDouble
-            batteryBurns = 1e-9
-        sensor <- sBool "Sensor"
-        let
-            sensorFails :: SDouble
-            sensorFails = 5e-9
+        haveBattery <- sBool "haveBattery"
+        let batteryBurns = (1e-9 :: SDouble)
+
+        haveSensor <- sBool "haveSensor"
+        let sensorFails = (5e-9 :: SDouble)
 
         andFails <- probability "AndFails"
-        constrain $ andFails .== andGate battery batteryBurns sensor sensorFails
+        constrain $ andFails .== andGate haveBattery batteryBurns haveSensor sensorFails
 
         orFails <- probability "OrFails"
-        constrain $ orFails .== orGate battery batteryBurns sensor sensorFails
+        constrain $ orFails .== orGate haveBattery batteryBurns haveSensor sensorFails
 
         return true
 
 thresholdExpression :: Predicate
 thresholdExpression = do
-    battery <- exists "Battery"
-    let
-        batteryBurns :: SFloat
-        batteryBurns = 1e-9
+    haveBattery <- sBool "haveBattery"
+    let batteryBurns = (1e-9 :: SFloat)
 
-    sensor <- exists "Sensor"
-    let
-        sensorFails :: SFloat
-        sensorFails = 5e-9
-    orFails <- exists "OrFails"
-    constrain $ orFails .== orGate battery batteryBurns sensor sensorFails
+    haveSensor <- sBool "haveSensor"
+    let sensorFails = (5e-9 :: SFloat)
 
-    safetyThreshold <- exists "SafetyThreshold"
-    constrain $ safetyThreshold .== 6e-9
+    orFails <- sFloat "OrFails"
+    constrain $ isPositiveFP orFails
+            &&& orFails .== orGate haveBattery batteryBurns haveSensor sensorFails
+
+    let safetyThreshold = (6e-9 :: SFloat)
 
     return $ orFails .< safetyThreshold
 
