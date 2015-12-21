@@ -13,13 +13,13 @@ maintainer:          mantkiew@gsd.uwaterloo.ca
 -- category:
 build-type:          Simple
 extra-source-files:  README.md
-cabal-version:       >=1.10
+cabal-version:       >=1.22
 
 executable faultTreeSMT
   main-is:             FaultTree.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >=4.7 && <5
-                     , sbv
+  build-depends:       base >= 4.7 && <5
+                     , sbv >= 5.6
   hs-source-dirs:      src
   default-language:    Haskell2010

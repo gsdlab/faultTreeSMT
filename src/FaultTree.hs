@@ -20,7 +20,7 @@ main = do
 probability :: String -> Symbolic SDouble
 probability varName = do
     x <- sDouble varName
-    constrain $ isPositiveFP x &&& x .<= 1
+    constrain $ fpIsPositive x &&& x .<= 1
     return x
 
 failureExpression :: Predicate
@@ -48,7 +48,7 @@ thresholdExpression = do
     let sensorFails = (5e-9 :: SFloat)
 
     orFails <- sFloat "OrFails"
-    constrain $ isPositiveFP orFails
+    constrain $ fpIsPositive orFails
             &&& orFails .== orGate haveBattery batteryBurns haveSensor sensorFails
 
     let safetyThreshold = (6e-9 :: SFloat)
